@@ -33,7 +33,7 @@ atomic_bool should_close = false;
 void *save_periodic(void *arg) {
   struct ParameterCtx *ctx = arg;
   while (true) {
-    if (should_close) {
+    if (atomic_load(&should_close)) {
       break;
     }
     sleep(15);
@@ -47,7 +47,7 @@ void *save_periodic(void *arg) {
 
 void sigint_cb(int sig) {
   (void)sig;
-  should_close = true;
+  atomic_store(&should_close, true);
 }
 
 void load_fonts(void) {
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
   pthread_create(&ecu_thread, NULL, get_ecu_data, &ecu_args);
   pthread_create(&save_thread, NULL, save_periodic, &g_car_ctx);
 
-  while (!should_close && !WindowShouldClose()) {
+  while (!atomic_load(&should_close) && !WindowShouldClose()) {
 
     if (IsKeyPressed(KEY_S) ||
         IsGamepadButtonPressed(0, GAMEPAD_BUTTON_MIDDLE_LEFT)) {
